@@ -1,5 +1,6 @@
 const AddCommentUseCase = require('../../../../Applications/use_case/AddCommentUseCase');
 const DeleteCommentUseCase = require('../../../../Applications/use_case/DeleteCommentUseCase');
+const ToggleLikeCommentUseCase = require('../../../../Applications/use_case/ToggleLikeCommentUseCase');
 
 const DomainErrorTranslator = require('../../../../Commons/exceptions/DomainErrorTranslator');
 const ClientError = require('../../../../Commons/exceptions/ClientError');
@@ -10,6 +11,7 @@ class CommentsHandler {
 
     this.postCommentToThreadHandler = this.postCommentToThreadHandler.bind(this);
     this.deleteCommentFromThreadHandler = this.deleteCommentFromThreadHandler.bind(this);
+    this.putCommentLikeHandler = this.putCommentLikeHandler.bind(this);
   }
 
   async postCommentToThreadHandler(request, h) {
@@ -21,8 +23,8 @@ class CommentsHandler {
 
       const addedComment = await addCommentUseCase.execute({
         content,
-        threadId,
         owner: credentialId,
+        threadId,
       });
 
       const response = h.response({
@@ -45,6 +47,28 @@ class CommentsHandler {
       const { threadId, commentId } = request.params;
 
       await deleteCommentUseCase.execute({
+        commentId,
+        threadId,
+        owner: credentialId,
+      });
+
+      const response = h.response({
+        status: 'success',
+      });
+      response.code(200);
+      return response;
+    } catch (error) {
+      return this._handleError(error, h);
+    }
+  }
+
+  async putCommentLikeHandler(request, h) {
+    try {
+      const toggleLikeCommentUseCase = this._container.getInstance(ToggleLikeCommentUseCase.name);
+      const { id: credentialId } = request.auth.credentials;
+      const { threadId, commentId } = request.params;
+
+      await toggleLikeCommentUseCase.execute({
         threadId,
         commentId,
         owner: credentialId,
