@@ -1,6 +1,5 @@
 const AddCommentUseCase = require('../../../../Applications/use_case/AddCommentUseCase');
 const DeleteCommentUseCase = require('../../../../Applications/use_case/DeleteCommentUseCase');
-const ToggleLikeCommentUseCase = require('../../../../Applications/use_case/ToggleLikeCommentUseCase');
 
 const DomainErrorTranslator = require('../../../../Commons/exceptions/DomainErrorTranslator');
 const ClientError = require('../../../../Commons/exceptions/ClientError');
@@ -11,7 +10,6 @@ class CommentsHandler {
 
     this.postCommentToThreadHandler = this.postCommentToThreadHandler.bind(this);
     this.deleteCommentFromThreadHandler = this.deleteCommentFromThreadHandler.bind(this);
-    this.putCommentLikeHandler = this.putCommentLikeHandler.bind(this);
   }
 
   async postCommentToThreadHandler(request, h) {
@@ -29,9 +27,7 @@ class CommentsHandler {
 
       const response = h.response({
         status: 'success',
-        data: {
-          addedComment,
-        },
+        data: { addedComment },
       });
       response.code(201);
       return response;
@@ -52,33 +48,7 @@ class CommentsHandler {
         owner: credentialId,
       });
 
-      const response = h.response({
-        status: 'success',
-      });
-      response.code(200);
-      return response;
-    } catch (error) {
-      return this._handleError(error, h);
-    }
-  }
-
-  async putCommentLikeHandler(request, h) {
-    try {
-      const toggleLikeCommentUseCase = this._container.getInstance(ToggleLikeCommentUseCase.name);
-      const { id: credentialId } = request.auth.credentials;
-      const { threadId, commentId } = request.params;
-
-      await toggleLikeCommentUseCase.execute({
-        threadId,
-        commentId,
-        owner: credentialId,
-      });
-
-      const response = h.response({
-        status: 'success',
-      });
-      response.code(200);
-      return response;
+      return h.response({ status: 'success' }).code(200);
     } catch (error) {
       return this._handleError(error, h);
     }
@@ -88,22 +58,17 @@ class CommentsHandler {
     const translatedError = DomainErrorTranslator.translate(error);
 
     if (translatedError instanceof ClientError) {
-      const response = h.response({
+      return h.response({
         status: 'fail',
         message: translatedError.message,
-      });
-      response.code(translatedError.statusCode);
-      return response;
+      }).code(translatedError.statusCode);
     }
 
     console.error(error);
-
-    const response = h.response({
+    return h.response({
       status: 'error',
       message: 'terjadi kesalahan pada server kami',
-    });
-    response.code(500);
-    return response;
+    }).code(500);
   }
 }
 

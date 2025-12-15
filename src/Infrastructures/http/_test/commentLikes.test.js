@@ -172,4 +172,26 @@ describe('/threads/{threadId}/comments/{commentId}/likes endpoint', () => {
     expect(response.statusCode).toEqual(404);
     expect(responseJson.status).toEqual('fail');
   });
+
+  it('should respond 500 when unexpected server error occurs', async () => {
+    // Create a spy on pool.query to simulate database error
+    const originalQuery = pool.query;
+    pool.query = jest.fn().mockRejectedValue(new Error('Database connection failed'));
+
+    const response = await server.inject({
+      method: 'PUT',
+      url: `/threads/${threadId}/comments/${commentId}/likes`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    expect(response.statusCode).toEqual(500);
+    const responseJson = JSON.parse(response.payload);
+    expect(responseJson.status).toEqual('error');
+    expect(responseJson.message).toEqual('terjadi kesalahan pada server kami');
+
+    // Restore original pool.query
+    pool.query = originalQuery;
+  });
 });
